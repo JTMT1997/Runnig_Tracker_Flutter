@@ -100,4 +100,12 @@ class DatabaseInstance {
     );
   }
 
+  Future <int> hapus(int lariId) async{
+    final db = await database();
+    return db.delete(
+      lariTableName,
+       where : '$idLari = ?',
+      whereArgs: [lariId]
+    );
+  }
 }

@@ -9,24 +9,24 @@ class LariModel {
   DateTime mulai;
   DateTime? selesai;
 
-factory LariModel.fromJson(Map<String, dynamic> json)=> LariModel(
+  factory LariModel.fromJson(Map<String, dynamic> json)=> LariModel(
   id: json['id'],  
-  mulai: DateTime (json['mulai']), 
+  mulai: DateTime.parse(json['mulai']), 
   selesai: json["selesai"] !=null ? DateTime.parse(json["selesai"]) : null,
   
 );
 
 
-Map<String, dynamic> toJson()=>{
+ Map<String, dynamic> toJson()=>{
   'id':id,
   'mulai':mulai.toIso8601String(),
   'selesai':selesai?.toIso8601String()
 };
+  
+  
+  Duration? get durasi => selesai == null ? null : selesai!.difference(mulai);
 
-
-Duration? get durasi => selesai == null ? null : selesai!.difference(mulai);
-
-  String get durasiFormat{
+   String get durasiFormat{
     if (durasi == null) return "-";  
       
     final d = durasi!;

@@ -1,76 +1,122 @@
 import 'package:flutter/material.dart';
+import 'package:running_tracker/database/database_instance.dart';
+import 'package:running_tracker/model/lari_model.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:syncfusion_flutter_maps/maps.dart';
 
 class DetailPage extends StatefulWidget {
-
   final int lariId;
-  const DetailPage({Key? key, required this.lariId}): super(key:key);
+  const DetailPage({super.key, required this.lariId});
   @override
   State<DetailPage> createState() => _DetailPageState();
 }
 
 class _DetailPageState extends State<DetailPage> {
-final List<MapLatLng> _dummyRoute = const[
-MapLatLng(-6.125645180219318, 106.92463298789295),//ppkdjakut
-MapLatLng(-6.129136532910289, 106.91790566998586),//Simpang 5 Semper
-MapLatLng(-6.157063921852733, 106.90842629639342),//Mall Kelapa Gading
-MapLatLng(-6.150547379137027, 106.89093689749878)//MOI
+  final DatabaseInstance _databaseInstance = DatabaseInstance();
+  List<MapLatLng> _route = [];
+  LariModel? _lari;
+  bool _loading = true;
 
-];
+  void initState() {
+    super.initState();
+    _loadData();
+  }
 
+  Future<void> _loadData() async {
+    final detail = await _databaseInstance.getDetailLari(widget.lariId);
+    final allLari = await _databaseInstance.getAllLari();
+    final lari = allLari.firstWhere((e) => e.id == widget.lariId);
 
+    setState(() {
+      _route = detail;
+      _lari = lari;
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return  Scaffold(
-      appBar: _buildAppBar(),
-      body: _buildeBody(),
-    );
-  }
-
-  AppBar _buildAppBar(){
-    return AppBar(title: const Text("Detail"),);
-  }
-
-  Widget _buildeBody(){
-    if (_dummyRoute.isEmpty) {
-      return _buildEmptyState();
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-    return _buildMap(_dummyRoute);
-  }
-
-Widget _buildEmptyState(){
-  return const Center(
-    child: Text("Belum ada data"),
-  );
-
-}
-
-Widget _buildMap(List<MapLatLng> route){
-return Padding(
-  padding: const EdgeInsets.all(8.0),
-  child: SfMaps(
-    layers:[
-      MapTileLayer(
-        urlTemplate : "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-        initialFocalLatLng: route.first,
-        initialZoomLevel: 15,
-        initialMarkersCount: 1,
-        markerBuilder: (BuildContext context, int index){
-        return MapMarker(latitude: route.first.latitude, 
-        longitude: route.first.longitude,
-        child: const Icon(Icons.location_pin, color: Colors.red,),
-          );
-        },
-         sublayers: [
-          MapPolylineLayer(
-            polylines: {
-              MapPolyline(points: route, color: Colors.blue,width: 3),
-            })
-         ], 
-      )
-      ]
-      )
-      ,);
-}
+    return Scaffold(
+      appBar: AppBar(title: const Text("Detail Lari")), 
+    body: Padding(
+      padding: const EdgeInsets.all(16),
+      child:  Column(
+        children: [
+          Expanded(
+            child: SfMaps(
+              layers: [
+                MapTileLayer(
+                  urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                  initialZoomLevel: 15,
+                  initialFocalLatLng: _route.isNotEmpty?
+                  _route.first
+                  :const MapLatLng(-6.125591842330566, 106.92389269824174),
+                  initialMarkersCount:  _route.isNotEmpty ? 2 : 0,
+                  markerBuilder: (BuildContext context, int index) {
+                    if (index == 0){
+                      //titik awal 
+                      return MapMarker(
+                        latitude: _route.first.latitude,
+                         longitude: _route.first.longitude,
+                         child: const Icon(Icons.flag, color: Colors.green, size: 30),
+                         );
+                    }else{
+                      //titik akhir
+                      return MapMarker(
+                        latitude: _route.first.latitude,
+                         longitude: _route.first.longitude,
+                         child: const Icon(Icons.flag, color: Colors.red, size: 30),
+                         );  
+                    }
+                  },
+                  sublayers: [
+                    MapPolylineLayer(
+                      polylines: {
+                        MapPolyline(
+                          points: _route,
+                          color: Colors.red,
+                          width: 3,
+                          ),
+                      },
+                      ),
+                  ],
+                  ),
+              ],
+              ) 
+              ),
+                SizedBox(height: 20,),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text("Waktu Mulai"),
+                    Text(_lari!.mulai.toLocal().toString().substring(11,16)),
+                  ],
+                ),
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text("Waktu Selesai"),
+                      Text(_lari!.selesai?.toLocal().toString().substring(11,16)??":"  )
+                    ],
+                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                    const Text("Waktu : "),
+                    Text("Durasi"), Text(_lari!.durasiFormat)
+                ],
+              ),
+              Row(
+                 mainAxisAlignment: MainAxisAlignment.spaceBetween,     
+                 children: [
+                  const Text("Titik"), Text("${_route.length}")
+                 ],
+                )
+        ],
+      ),
+    ));
+  } 
 }

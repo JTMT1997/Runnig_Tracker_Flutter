@@ -26,8 +26,17 @@ class _CreatePageState extends State<CreatePage> {
     super.dispose();
   }
 
+  Future<void> _checkPermision() async{
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied || 
+        permission == LocationPermission.deniedForever) {
+      await Geolocator.requestPermission();  
+    }
+  }
+
   // Start tracking
   Future<void> _startRun() async{
+    await _checkPermision();
     // Simpan header lari baru
     final id = await _databaseInstance.insertLari({
       "mulai": DateTime.now().toIso8601String(),
@@ -83,9 +92,20 @@ class _CreatePageState extends State<CreatePage> {
                 layers: [
                   MapTileLayer(
                     urlTemplate: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-                    initialFocalLatLng: _route.isNotEmpty? 
+                    initialFocalLatLng: _route.isNotEmpty?
                     _route.last: const MapLatLng(-6.125806213780367, 106.92399189734166), // Lokasi PPKD
                     initialZoomLevel: 15,
+                    initialMarkersCount: _route.isNotEmpty ? 1 : 0,
+                    markerBuilder: (context, index) {
+                      final point = _route.last;
+                      return MapMarker(latitude: point.latitude, longitude: point.longitude,
+                      child: const Icon(
+                        Icons.location_on,
+                        color: Colors.red,
+                        size: 30,
+                      ),);
+                    },
+
                     sublayers: [
                       MapPolylineLayer(
                         polylines: {
